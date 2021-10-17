@@ -4,13 +4,15 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Webhook;
 using Discord.WebSocket;
 
 namespace ZadalBot.Services
 {
-    public class DiscordService
+    public class DiscordService : IDisposable
     {
         private readonly DiscordSocketClient _client;
+        private readonly DiscordWebhookClient _webhookClient;
         private readonly ZadalBotConfig _config;
         private SocketTextChannel _chatChannel;
 
@@ -21,7 +23,9 @@ namespace ZadalBot.Services
             _client.Log += DiscordLogHandler;
             _client.MessageReceived += async msg => await MessageHandler(msg);
             _client.MessageUpdated += async (_, msgNew, _) => await MessageHandler(msgNew);
-            _client.Ready += GetGuildAndChannel;
+            _client.Ready += OnReady;
+
+            _webhookClient = new DiscordWebhookClient(config.DiscordGameChannelWebhook);
         }
 
         private Task DiscordLogHandler(LogMessage msg)
@@ -55,7 +59,7 @@ namespace ZadalBot.Services
                 await _client.StartAsync();
             });
 
-        private Task GetGuildAndChannel()
+        private async Task OnReady()
         {
             var guild = _client.GetGuild(_config.DiscordGameGuild);
 
@@ -73,7 +77,7 @@ namespace ZadalBot.Services
                 Environment.Exit(-1);
             }
 
-            return _chatChannel.SendMessageAsync(embed: new EmbedBuilder()
+            await _chatChannel.SendMessageAsync(embed: new EmbedBuilder()
                 .WithColor(Color.Green)
                 .WithDescription("Бот запущен")
                 .Build());
@@ -83,11 +87,8 @@ namespace ZadalBot.Services
             Task.Run(async () =>
             {
                 await Util.WaitWhile(() => _chatChannel == null, TimeSpan.FromMilliseconds(20));
-                
 
-                await _chatChannel.SendMessageAsync(embed: new EmbedBuilder()
-                    .WithAuthor(msg.Sender)
-                    .WithDescription(msg.Contents).Build());
+                await _webhookClient.SendMessageAsync(msg.Contents, false, null, msg.Sender);
             });
 
         public Task SendPlayerConnectionStatus(DataService.PlayerConnectionStatus status) =>
@@ -130,5 +131,11 @@ namespace ZadalBot.Services
                     .WithColor(active ? Color.Green : Color.Red)
                     .Build());
             });
+
+        public void Dispose()
+        {
+            _client?.Dispose();
+            _webhookClient?.Dispose();
+        }
     }
 }

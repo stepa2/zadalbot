@@ -6,16 +6,16 @@ using Newtonsoft.Json.Linq;
 
 namespace ZadalBot.Services
 {
-    public class DataService
+    public sealed class DataService
     {
-        public class ChatMessage
+        public sealed class ChatMessage
         {
             public string Sender { get; init; }
             public string Contents { get; init; }
             public IEnumerable<string> Attachments { get; init; }
         }
 
-        public class GameMessage
+        public sealed class GameMessage
         {
             public string Sender { get; init; }
             public string Contents { get; init; }
@@ -28,7 +28,7 @@ namespace ZadalBot.Services
             LoadedClientside
         }
 
-        public class PlayerConnectionStatus
+        public sealed class PlayerConnectionStatus
         {
             public string Player { get; init; }
 

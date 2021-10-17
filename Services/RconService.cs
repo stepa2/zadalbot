@@ -7,7 +7,7 @@ using RconSharp;
 
 namespace ZadalBot.Services
 {
-    public class RconService
+    public sealed class RconService
     {
         private const string GmodCommandName = "zadalbot_fetch";
 

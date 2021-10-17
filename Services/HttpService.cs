@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ZadalBot.Services
 {
-    public class HttpService
+    public class HttpService : IDisposable
     {
         private readonly HttpListener _listener;
         public HttpService(ZadalBotConfig config)
@@ -82,6 +82,11 @@ namespace ZadalBot.Services
                     }
                 }
             });
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)_listener)?.Dispose();
         }
     }
 }

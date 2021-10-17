@@ -15,5 +15,7 @@
         public ulong DiscordGameChannel { get; init; }
 
         public ulong DiscordGameGuild { get; init; }
+
+        public string DiscordGameChannelWebhook { get; init; }
     }
 }

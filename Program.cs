@@ -18,9 +18,9 @@ namespace ZadalBot
             using (var jsonReader = new JsonTextReader(fileReader))
                 cfg = new JsonSerializer().Deserialize<ZadalBotConfig>(jsonReader);
 
-            var bot = new ZadalBot(cfg);
+            using (var bot = new ZadalBot(cfg)) 
+                await bot.RunAsync();
 
-            await bot.RunAsync();
         }
 
     }

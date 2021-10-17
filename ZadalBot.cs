@@ -6,7 +6,7 @@ using ZadalBot.Services;
 
 namespace ZadalBot
 {
-    public sealed class ZadalBot
+    public sealed class ZadalBot : IDisposable
     {
         private readonly RconService _rcon;
         private readonly DiscordService _discord;
@@ -49,6 +49,12 @@ namespace ZadalBot
                 );
 
             await Task.Delay(-1); // Lock
+        }
+
+        public void Dispose()
+        {
+            _discord?.Dispose();
+            _http?.Dispose();
         }
     }
 }
