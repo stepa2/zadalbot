@@ -85,12 +85,12 @@ namespace ZadalBot.Services
             await Connect();
         }
 
-        private async Task SendFetchCommandImpl()
+        private async Task<string> SendFetchCommandImpl()
         {
             if (_client == null)
             {
                 Console.WriteLine("RCON > not initialized yet");
-                return;
+                return null;
             }
 
             try
@@ -104,21 +104,51 @@ namespace ZadalBot.Services
                 Console.WriteLine("RCON > got exception executing fetch command: {0}", e.Message);
                 await Connect();
             }
+
+            return null;
         }
 
-        public Task SendFetchCommand() =>
+        private async Task<string> SendCommand(string command)
+        {
+            if (_client == null)
+            {
+                Console.WriteLine("RCON > not initialized yet");
+                return null;
+            }
+
+            try
+            {
+                return await _client.ExecuteCommandAsync(GmodCommandName);
+            }
+            catch (SocketException e)
+            {
+                Console.WriteLine("RCON > got exception executing fetch command: {0}", e.Message);
+                await Connect();
+            }
+
+            return null;
+        }
+
+        private Task<string> RunSendCommand(string command) =>
             Task.Run(async () =>
             {
-                var task = SendFetchCommandImpl();
+                var sendCommand = SendCommand(command);
+                var anyTask = await Task.WhenAny(
+                    sendCommand, 
+                    Task.Delay(TimeSpan.FromSeconds(6)).ContinueWith<string>(task => null));
 
-                if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(6))) != task)
-                {
-                    Console.WriteLine("RCON > command execution timeout");
+                if (anyTask == sendCommand)
+                    return await anyTask;
 
-                    if (OnDisconnected != null) await OnDisconnected();
-                    await Connect();
-                }
+                Console.WriteLine("RCON > command execution timeout");
+                if (OnDisconnected != null) await OnDisconnected();
+                await Connect();
+                return null;
             });
+
+        public Task SendFetchCommand() => RunSendCommand(GmodCommandName);
+
+        //public Task<string> SendStatusCommand() => RunSendCommand("status");
 
         public event Func<Task> OnConnected;
         public event Func<Task> OnDisconnected;

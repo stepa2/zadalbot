@@ -2,21 +2,26 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
 using Discord.Webhook;
 using Discord.WebSocket;
 
 namespace ZadalBot.Services
 {
-    public class DiscordService : IDisposable
+    public sealed class DiscordService : IDisposable
     {
         private readonly DiscordSocketClient _client;
         private readonly DiscordWebhookClient _webhookClient;
         private readonly ZadalBotConfig _config;
         private SocketTextChannel _chatChannel;
+        private readonly CommandService _commands;
+        private readonly ZadalBot _owner;
+        private readonly IServiceProvider _commandsServiceProvider;
 
-        public DiscordService(ZadalBotConfig config)
+        public DiscordService(ZadalBotConfig config, ZadalBot owner)
         {
             _config = config;
             _client = new DiscordSocketClient(new DiscordSocketConfig());
@@ -26,6 +31,10 @@ namespace ZadalBot.Services
             _client.Ready += OnReady;
 
             _webhookClient = new DiscordWebhookClient(config.DiscordGameChannelWebhook);
+
+            _commands = new CommandService(new CommandServiceConfig());
+
+            _owner = owner;
         }
 
         private Task DiscordLogHandler(LogMessage msg)
@@ -40,21 +49,44 @@ namespace ZadalBot.Services
             if (msg.Author.IsBot)
                 return;
 
+            var contents = msg.Content;
+
+            if (await HandleCommand(msg))
+                return;
 
             if (OnMessage != null) await OnMessage(new DataService.ChatMessage
             {
                 Sender = msg.Author.Username,
-                Contents = msg.Content,
+                Contents = contents,
                 Attachments = msg.Attachments.Select(att => att.Url).ToList()
             });
+        }
+
+        private async Task<bool> HandleCommand(SocketMessage msg)
+        {
+            if(msg is not SocketUserMessage userMsg)
+                return false;
+
+            int argPos = 0;
+            if (!userMsg.HasCharPrefix('!', ref argPos))
+                return false;
+
+            var result = await _commands.ExecuteAsync(
+                new SocketCommandContext(_client, userMsg),
+                argPos,
+                services: _owner
+                );
+            return true;
         }
 
         public event Func<DataService.ChatMessage, Task> OnMessage;
 
 
-        public async Task Connect() =>
+        public async Task Start() =>
             await Task.Run(async () =>
             {
+                await _commands.AddModulesAsync(Assembly.GetAssembly(typeof(DiscordService)), services: _owner);
+
                 await _client.LoginAsync(TokenType.Bot, _config.DiscordToken);
                 await _client.StartAsync();
             });

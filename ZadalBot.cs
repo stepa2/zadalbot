@@ -6,19 +6,22 @@ using ZadalBot.Services;
 
 namespace ZadalBot
 {
-    public sealed class ZadalBot : IDisposable
+    public sealed class ZadalBot : IDisposable, IServiceProvider
     {
         private readonly RconService _rcon;
         private readonly DiscordService _discord;
         private readonly HttpService _http;
         private readonly DataService _data;
+        private readonly QueryService _query;
+
 
         public ZadalBot(ZadalBotConfig config)
         {
             _data = new DataService();
             _rcon = new RconService(config);
-            _discord = new DiscordService(config);
+            _discord = new DiscordService(config, this);
             _http = new HttpService(config);
+            _query = new QueryService(config);
 
             _http.DataProvider += async () => new JArray(await _data.GetDataFromChat());
             _http.OnDataReceived += async data => await _data.HandleDataFromGame(data);
@@ -44,8 +47,9 @@ namespace ZadalBot
         {
             await Task.WhenAll(
                 _rcon.Connect(),
-                _discord.Connect(),
-                _http.Startup()
+                _discord.Start(),
+                _http.Startup(),
+                _query.Connect()
                 );
 
             await Task.Delay(-1); // Lock
@@ -55,6 +59,22 @@ namespace ZadalBot
         {
             _discord?.Dispose();
             _http?.Dispose();
+        }
+
+        public object GetService(Type type)
+        {
+            if (type == typeof(DataService))
+                return _data;
+            if (type == typeof(DiscordService))
+                return _discord;
+            if (type == typeof(HttpService))
+                return _http;
+            if (type == typeof(QueryService))
+                return _query;
+            if (type == typeof(RconService))
+                return _rcon;
+
+            return null;
         }
     }
 }
