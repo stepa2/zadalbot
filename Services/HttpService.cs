@@ -33,9 +33,9 @@ namespace ZadalBot.Services
             var text = data.ToString(Formatting.None);
 
             await ctx.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(text));
-            ctx.Response.OutputStream.Close();
-
             ctx.Response.StatusCode = (int) HttpStatusCode.OK;
+
+            ctx.Response.OutputStream.Close();
         }
 
         private async Task HandlePost(HttpListenerContext ctx)
