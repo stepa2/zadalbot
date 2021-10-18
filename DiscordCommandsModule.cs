@@ -18,8 +18,9 @@ namespace ZadalBot
         public async Task StatusAsync()
         {
             var query = await QueryService.Query();
+            var status = await RconService.SendStatusCommand();
 
-            if (query == null)
+            if (query == null || status == null)
             {
                 await ReplyAsync(message: null, isTTS: false, embed: new EmbedBuilder
                 {
@@ -29,6 +30,8 @@ namespace ZadalBot
             }
             else
             {
+                var ip = Util.GetIpAddressFromStatusOutput(status);
+
                 //var status = await RconService.SendStatusCommand();
 
                 var players = query.Players.Count != 0 ?
@@ -43,7 +46,7 @@ namespace ZadalBot
                         .WithFields(
                             new EmbedFieldBuilder { IsInline = true, Name = "Карта:", Value = query.Map },
                             new EmbedFieldBuilder { IsInline = true, Name = "Онлайн:", Value = $"{query.Players.Count}/{query.MaxPlayers}" },
-                            new EmbedFieldBuilder { IsInline = true, Name = "Адрес:", Value = "Не реализовано!" },
+                            new EmbedFieldBuilder { IsInline = true, Name = "Адрес:", Value = ip?.ToString() ?? "<Ошибка>" },
                             new EmbedFieldBuilder { IsInline = false, Name = "Игроки:", Value = $"```{players}```" }
                         ).Build());
 

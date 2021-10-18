@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Okolni.Source.Common;
@@ -25,27 +26,28 @@ namespace ZadalBot.Services
     public class QueryService
     {
         private readonly QueryConnection _connection;
+        private readonly string _hostName;
 
         public QueryService(ZadalBotConfig config)
         {
+            _hostName = config.GameHostname;
             _connection = new QueryConnection
             {
-                Host = config.GameHostname,
+                // Only IP addresses are supported, hostnames are not
+                //Host = config.GameHostname,
                 Port = config.GamePort
             };
         }
 
-        public async Task Connect() =>
-            await Task.Run(() =>
-            {
-                _connection.Connect();
-            });
-
         public async Task<QueryResult> Query() =>
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 try
                 {
+                    var addresses = await Dns.GetHostAddressesAsync(_hostName);
+                    _connection.Host = addresses.Single().ToString();
+                    _connection.Connect();
+
                     var info = _connection.GetInfo();
                     var players = _connection.GetPlayers();
 
@@ -61,8 +63,9 @@ namespace ZadalBot.Services
                         }).ToList()
                     };
                 }
-                catch (SourceQueryException)
+                catch (SourceQueryException e)
                 {
+                    Console.WriteLine("Query > exception {0}", e.Message);
                     return null;
                 }
 

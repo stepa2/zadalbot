@@ -48,8 +48,7 @@ namespace ZadalBot
             await Task.WhenAll(
                 _rcon.Connect(),
                 _discord.Start(),
-                _http.Startup(),
-                _query.Connect()
+                _http.Startup()
                 );
 
             await Task.Delay(-1); // Lock

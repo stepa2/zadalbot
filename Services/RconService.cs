@@ -85,29 +85,6 @@ namespace ZadalBot.Services
             await Connect();
         }
 
-        private async Task<string> SendFetchCommandImpl()
-        {
-            if (_client == null)
-            {
-                Console.WriteLine("RCON > not initialized yet");
-                return null;
-            }
-
-            try
-            {
-                var result = await _client.ExecuteCommandAsync(GmodCommandName);
-                if (!string.IsNullOrEmpty(result))
-                    Console.WriteLine("RCON > {0} response : {1}", GmodCommandName, result);
-            }
-            catch (SocketException e)
-            {
-                Console.WriteLine("RCON > got exception executing fetch command: {0}", e.Message);
-                await Connect();
-            }
-
-            return null;
-        }
-
         private async Task<string> SendCommand(string command)
         {
             if (_client == null)
@@ -118,7 +95,7 @@ namespace ZadalBot.Services
 
             try
             {
-                return await _client.ExecuteCommandAsync(GmodCommandName);
+                return await _client.ExecuteCommandAsync(command);
             }
             catch (SocketException e)
             {
@@ -148,7 +125,7 @@ namespace ZadalBot.Services
 
         public Task SendFetchCommand() => RunSendCommand(GmodCommandName);
 
-        //public Task<string> SendStatusCommand() => RunSendCommand("status");
+        public Task<string> SendStatusCommand() => RunSendCommand("status");
 
         public event Func<Task> OnConnected;
         public event Func<Task> OnDisconnected;
